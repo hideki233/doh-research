@@ -2,6 +2,7 @@ import os
 import socket
 import struct
 import urllib.request
+import base64
 
 TYPE_MAP = {
     "A": 1,
@@ -83,12 +84,38 @@ def parse_minimal_response(data: bytes):
 
     return {"type": ans_type, "ttl": ans_ttl, "rdata": rdata}
 
+def encode(data: bytes, domain: str) -> list[str]:
+    b32 = base64.b32encode(data).rstrip(b'=')
+    b32data = b32.decode('ascii').lower()
+    
+    chunks = []
+    for i in range(0, len(b32data), 63):
+        chunk = b32data[i:i+63]
+        full_domain = f"{chunk}.{domain}"    
+        chunks.append(full_domain)
+    return chunks
+
+def decode (fqdns: list[str], domain: str) -> bytes:
+    b32data = ""
+    
+    for fqdn in fqdns:
+        if fqdn.endswith(f".{domain}"):
+            chunk = fqdn[:-len(domain) - 1].replace('.', '')
+            b32data += chunk
+            
+    
+    missing_padding = len(b32data) % 8
+    if missing_padding:
+        b32data += '=' * (8 - missing_padding)
+        
+    return base64.b32decode(b32data.upper().encode('ascii'))
 
 if __name__ == "__main__":
     target = input("Dominio: ").strip() or "one.one.one.one"
     query_bytes = dns_query(target, "A")
 
 
+    response = send_doh(query_bytes)
     result = parse_minimal_response(response)
     if result:
         if result["type"] == 1:  # type A (IPv4)
