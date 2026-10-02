@@ -28,6 +28,10 @@ O projeto aborda a montagem manual de mensagens binárias em formato de rede (wi
 - Script auxiliar para validação do pipeline de transmissão local.
 - Codifica uma mensagem de teste, monta a query binária e dispara o pacote UDP contra o `receiver.py`.
 
+### 4. Suíte de Testes Automatizados (`test_dns.py`)
+- Testes unitários com `unittest` cobrindo especificação binária da RFC 1035, encoding Base32, fatiamento de rótulos e respostas bidirecionais (A e TXT).
+- *Nota:* A estrutura e os casos de teste deste arquivo foram gerados com auxílio de Inteligência Artificial para acelerar o processo de desenvolvimento e garantir cobertura rápida das especificações do protocolo.
+
 ---
 
 ## Documentação Técnica Inclusa
@@ -45,17 +49,19 @@ Executa uma consulta padrão para o Cloudflare via HTTPS e exibe os dados parsea
 python3 DNS_Research.py
 ```
 
-### 2. Testando o Pipeline de Recepção Local
+### 2. Testando o Pipeline de Recepção Local (Full-Duplex TXT)
 Terminal 1 (Inicia o servidor receptor):
 ```bash
 python3 receiver.py
 ```
 
-Terminal 2 (Envia um payload codificado):
+Terminal 2 (Envia o payload e recebe a resposta TXT):
 ```bash
 python3 test_sender.py
 ```
-O Terminal 1 exibirá os dados decodificados:
-```text
-[+] Payload recebido: b'teste de payload'
+
+### 3. Executando os Testes Unitários
+Valida todas as camadas do protocolo localmente em milissegundos:
+```bash
+python3 -m unittest -v test_dns.py
 ```
