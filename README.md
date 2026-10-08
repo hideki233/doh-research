@@ -1,5 +1,7 @@
 # doh-research
 
+[![Tests](https://github.com/hideki233/doh-research/actions/workflows/tests.yml/badge.svg)](https://github.com/hideki233/doh-research/actions/workflows/tests.yml)
+
 Laboratório prático de pesquisa, implementação e análise de tráfego DNS em baixo nível (RFC 1035) e DNS-over-HTTPS (DoH, RFC 8484) em Python puro.
 
 O projeto aborda a montagem manual de mensagens binárias em formato de rede (wire-format), mecanismos de transporte híbrido (UDP socket e DoH via HTTPS POST), dissecação de pacotes e transporte de dados estruturados em subdomínios utilizando codificação Base32.
