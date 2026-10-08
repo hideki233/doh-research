@@ -85,24 +85,38 @@ def parse_minimal_response(data: bytes):
     return {"type": ans_type, "ttl": ans_ttl, "rdata": rdata}
 
 def encode(data: bytes, domain: str) -> list[str]:
+    session_id = os.urandom(2).hex()
+    
     b32 = base64.b32encode(data).rstrip(b'=')
     b32data = b32.decode('ascii').lower()
     
-    chunks = []
-    for i in range(0, len(b32data), 63):
-        chunk = b32data[i:i+63]
-        full_domain = f"{chunk}.{domain}"    
-        chunks.append(full_domain)
-    return chunks
+    raw_chunks = [b32data[i:i+63] for i in range(0, len(b32data), 63)]
+    total = len(raw_chunks)
+    
+    queries = []
+    for seq, chunck in enumerate(raw_chunks):
+        full_domain = f"{session_id}.{seq}.{total}.{chunck}.{domain}"
+        queries.append(full_domain)
+        
+    return queries
 
 def decode (fqdns: list[str], domain: str) -> bytes:
-    b32data = ""
+    chunks_ordered = {}
     
     for fqdn in fqdns:
         if fqdn.endswith(f".{domain}"):
-            chunk = fqdn[:-len(domain) - 1].replace('.', '')
-            b32data += chunk
+            prefix = fqdn[:-len(domain) - 1]
+            parts = prefix.split('.')
             
+            if len(parts) >= 4:
+                seq = int(parts[1])
+                chunk = parts[3]
+                chunks_ordered[seq] = chunk
+            else:
+                chunks_ordered[
+                len(chunks_ordered)] = prefix.replace('.','')
+    
+    b32data = "".join(chunks_ordered[i] for i in sorted(chunks_ordered.keys()))  
     
     missing_padding = len(b32data) % 8
     if missing_padding:

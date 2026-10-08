@@ -61,15 +61,42 @@ def start_server():
     sock.bind(('0.0.0.0', port))
     print(f"[+] Escutando em 0.0.0.0:{port}")
     
+    sessions = {}
+    
     while True:
         data, addr = sock.recvfrom(512)
         qname, question_end = parse_qname(data, 12)
+
         if qname.endswith(APEX_DOMAIN):
-            payload = decode([qname], APEX_DOMAIN)
-            print(f"[+] Payload recebido: {payload}")
-            response = build_response(data, question_end)
-            sock.sendto(response, addr)
-            print(f"[+] Reposta enviada para {addr[0]}:{addr[1]}")
+            prefix = qname[:-len(APEX_DOMAIN) - 1]
+            parts = prefix.split('.')
             
+            if len(parts) >= 4:
+                session_id = parts[0]
+                seq = int(parts[1])
+                total = int(parts[2])
+                chunk = parts[3]
+                
+                if session_id not in sessions:
+                    sessions[session_id] = {"total": total, "chunks": {}}
+            
+                sessions[session_id]["chunks"][seq] = chunk
+                print(f"[>] Sessão {session_id} - chunk {seq+1}/{total} recebido")
+                
+                sessao = sessions[session_id]
+                if len(sessao["chunks"]) == sessao["total"]:
+                    fqdns_ordered = [
+                        f"{session_id}.{i}.{sessao['total']}.{sessao['chunks'][i]}.{APEX_DOMAIN}"
+                        for i in sorted(sessao["chunks"].keys())
+                    ]
+                    
+                    payload = decode(fqdns_ordered, APEX_DOMAIN)
+                    print(f"[+] Sessão {session_id} COMPLETA! Payload: {payload}")
+                    
+                    del sessions[session_id]
+            
+        response = build_response(data, question_end)
+        sock.sendto(response, addr)
+                        
 if __name__ == "__main__":
     start_server()
