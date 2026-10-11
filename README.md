@@ -30,12 +30,18 @@ O projeto aborda a montagem manual de mensagens binárias em formato de rede (wi
 - Script auxiliar para validação do pipeline de transmissão local.
 - Codifica uma mensagem de teste, monta a query binária e dispara o pacote UDP contra o `receiver.py`.
 
-### 4. CLI Unificada (`cli.py`)
+### 4. Módulo de Criptografia Autenticada (`crypto.py`)
+- Cifragem de canal simétrico utilizando **AES-256-GCM** (padrão AEAD).
+- Derivação de chaves de 256 bits via SHA-256 (`derive_key`).
+- Vetor de inicialização (Nonce de 12 bytes aleatório por mensagem) prevenindo repetição de padrões estatísticos no tráfego.
+- Tag de integridade/autenticação de 16 bytes: rejeita imediatamente pacotes adulterados ou interceptados por intermediários (`InvalidTag`).
+
+### 5. CLI Unificada (`cli.py`)
 - Ponto de entrada consolidado utilizando `argparse`.
 - Permite subir o servidor (`server`), enviar payloads fracionados em sessões (`send`) ou resolver domínios diretamente via DoH/UDP (`query`).
 
-### 5. Suíte de Testes Automatizados (`test_dns.py`)
-- Testes unitários com `unittest` cobrindo especificação binária da RFC 1035, encoding Base32, fatiamento de rótulos e respostas bidirecionais (A e TXT).
+### 6. Suíte de Testes Automatizados (`test_dns.py`)
+- Testes unitários com `unittest` cobrindo especificação binária da RFC 1035, encoding Base32, fatiamento de rótulos, respostas bidirecionais (A e TXT) e validação estrita de segurança criptográfica (roundtrip, integridade de MAC e rejeição de chaves inválidas).
 - *Nota:* A estrutura e os casos de teste deste arquivo foram gerados com auxílio de Inteligência Artificial para acelerar o processo de desenvolvimento e garantir cobertura rápida das especificações do protocolo.
 
 ---

@@ -3,6 +3,8 @@ import struct
 import unittest
 from DNS_Research import dns_query, encode, decode, parse_minimal_response
 from receiver import parse_qname, build_response
+from crypto import derive_key, encrypt_payload, decrypt_payload
+from cryptography.exceptions import InvalidTag
 
 
 class TestDNSProtocol(unittest.TestCase):
@@ -110,6 +112,41 @@ class TestDNSProtocol(unittest.TestCase):
 
         self.assertEqual(txt_len, len(msg_esperada))
         self.assertEqual(txt_conteudo, msg_esperada)
+
+    def test_crypto_aes_gcm_roundtrip(self):
+        """Valida se o AES-256-GCM cifra e decifra preservando a integridade estrita dos bytes."""
+        key = derive_key("senha_super_secreta_c2")
+        payload = b"Comando confidencial para o host comprometido: whoami /all"
+
+        encrypted = encrypt_payload(payload, key)
+        # O blob cifrado deve ter tamanho: len(payload) + 12 (nonce) + 16 (tag MAC)
+        self.assertEqual(len(encrypted), len(payload) + 12 + 16)
+
+        decrypted = decrypt_payload(encrypted, key)
+        self.assertEqual(decrypted, payload)
+
+    def test_crypto_tamper_detection(self):
+        """Valida se o AES-GCM rejeita imediatamente payloads adulterados em trânsito (InvalidTag)."""
+        key = derive_key("chave_autenticacao")
+        payload = b"Comando legitimo"
+        encrypted = bytearray(encrypt_payload(payload, key))
+
+        # Adultera o ultimo byte da mensagem cifrada (flip de bit)
+        encrypted[-1] ^= 0x01
+
+        with self.assertRaises(InvalidTag):
+            decrypt_payload(bytes(encrypted), key)
+
+    def test_crypto_wrong_key_rejection(self):
+        """Valida se uma chave incorreta eh sumariamente rejeitada pelo MAC do GCM."""
+        key_correta = derive_key("chave_certa")
+        key_errada = derive_key("chave_errada")
+        payload = b"Mensagem secreta"
+
+        encrypted = encrypt_payload(payload, key_correta)
+
+        with self.assertRaises(InvalidTag):
+            decrypt_payload(encrypted, key_errada)
 
 
 if __name__ == "__main__":
